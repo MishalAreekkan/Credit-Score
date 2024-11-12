@@ -1,0 +1,107 @@
+{% extends "home/Home.html" %}
+
+{% block base %}
+<div id="questionModal" class="modal fade show" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true" style="display: block;">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content rounded-lg shadow-lg" style="background-color: #f9f9f9; border: none;">
+      <div class="modal-header" style="background-color: #5F6F65; color: white; border-top-left-radius: 10px; border-top-right-radius: 10px;">
+        <h5 class="modal-title" id="exampleModalLabel">Answer the Question</h5>
+      </div>
+      <div class="modal-body">
+        <p id="questionText" class="mb-4" style="font-size: 18px; color: #333333; line-height: 1.6;"></p>
+        <form id="questionForm" method="POST">
+          {% csrf_token %}
+          <div class="form-check mb-3">
+            <input type="radio" class="form-check-input" name="answer" value="A" id="answerA">
+            <label class="form-check-label" for="answerA">Sometimes</label>
+          </div>
+          <div class="form-check mb-3">
+            <input type="radio" class="form-check-input" name="answer" value="B" id="answerB">
+            <label class="form-check-label" for="answerB">Never</label>
+          </div>
+          <div class="form-check mb-3">
+            <input type="radio" class="form-check-input" name="answer" value="C" id="answerC">
+            <label class="form-check-label" for="answerC">Always</label>
+          </div>
+          <div class="form-check mb-3">
+            <input type="radio" class="form-check-input" name="answer" value="D" id="answerD">
+            <label class="form-check-label" for="answerD">Nil</label>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer" style="border-top: 1px solid #e0e0e0; border-bottom-left-radius: 10px; border-bottom-right-radius: 10px;">
+        <button type="button" class="btn btn-primary px-4 py-2" id="nextButton" style="background-color: #9CA986; border-color: #9CA986; color: white; font-weight: bold; transition: background-color 0.3s ease;">
+          Next
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<script>
+  let currentQuestion = 0;
+  const questions = JSON.parse('{{ questions_json|escapejs }}');
+  console.log(questions, 'questions');
+
+  function loadQuestion() {
+    if (questions.length > 0) {
+      $("#questionText").text(questions[currentQuestion].fields.text);
+    }
+  }
+
+  function getCSRFToken() {
+    return $("input[name=csrfmiddlewaretoken]").val();
+  }
+
+  function submitAnswer() {
+    const answer = $("input[name='answer']:checked").val();
+    if (answer) {
+      $.ajax({
+        url: "http://127.0.0.1:8000/submit_answer/",
+        type: "POST",
+        contentType: "application/json",
+        headers: {
+          "X-CSRFToken": getCSRFToken()
+        },
+        data: JSON.stringify({
+          question_id: questions[currentQuestion].pk,
+          answer: answer
+        }),
+        success: function(response) {
+          currentQuestion += 1;
+          if (currentQuestion < questions.length) {
+            loadQuestion();
+          } else {
+            window.location.href = "http://127.0.0.1:8000/results/";
+          }
+        },
+        error: function() {
+          alert('Error submitting answer');
+        }
+      });
+    } else {
+      alert('Please select an answer.');
+    }
+  }
+
+  $(document).ready(function() {
+    loadQuestion();
+
+    $("#nextButton").click(function() {
+      submitAnswer();
+    });
+
+    $("#nextButton").hover(
+      function() {
+        $(this).css("background-color", "#7A8D5B");
+      }, 
+      function() {
+        $(this).css("background-color", "#9CA986");
+      }
+    );
+  });
+</script>
+
+{% endblock %}
